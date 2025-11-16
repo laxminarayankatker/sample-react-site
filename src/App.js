@@ -1,7 +1,16 @@
 import logo from './logo.svg';
 import './App.css';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import AuthCallback from './components/AuthCallback';
+import Dashboard from './components/Dashboard';
 
-function App() {
+function Home() {
+  const navigate = useNavigate();
+
+  const handleLogin = () => {
+    navigate('/auth/callback');
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -9,6 +18,12 @@ function App() {
         <p>
           Edit <code>src/App.js</code> and save to reload.
         </p>
+        <button
+          className="App-link login-button"
+          onClick={handleLogin}
+        >
+          Login
+        </button>
         <a
           className="App-link"
           href="https://reactjs.org"
@@ -19,6 +34,18 @@ function App() {
         </a>
       </header>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

@@ -28,6 +28,25 @@
   color: #61dafb;
 }
 
+.login-button {
+  background: transparent;
+  border: 2px solid #61dafb;
+  color: #61dafb;
+  padding: 10px 20px;
+  margin: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.login-button:hover {
+  background: #61dafb;
+  color: #282c34;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
