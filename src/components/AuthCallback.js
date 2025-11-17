@@ -75,7 +75,7 @@ function AuthCallback() {
       <div className="auth-callback-card">
         <h2>Token Exchange</h2>
         <p className="auth-callback-description">
-          Enter your authorization code to exchange for tokens
+          Enter your authorization code to exchange for tokens XXX
         </p>
         
         <form onSubmit={handleSubmit} className="auth-callback-form">
