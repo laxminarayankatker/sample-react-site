@@ -29,6 +29,7 @@ function AuthCallback() {
           },
           credentials: 'include', // Important: This allows cookies to be sent/received
           body: JSON.stringify({ code: code.trim() }),
+          redirect: 'manual', // Use 'manual' to intercept 302 redirects
         });
       } catch (fetchError) {
         // Check if it's a CORS error
@@ -36,6 +37,120 @@ function AuthCallback() {
           throw new Error('CORS Error: The API Gateway endpoint needs to be configured to allow requests from localhost:3000. Please ensure the backend has CORS headers configured (Access-Control-Allow-Origin, Access-Control-Allow-Credentials).');
         }
         throw fetchError;
+      }
+
+      // Log response details for debugging
+      console.log('=== Response Details ===');
+      console.log('response.type:', response.type);
+      console.log('response.status:', response.status);
+      console.log('response.statusText:', response.statusText);
+      console.log('response.ok:', response.ok);
+      console.log('response.url:', response.url);
+      console.log('response.redirected:', response.redirected);
+      
+      // Try to log headers (may not be accessible for opaque responses)
+      try {
+        console.log('response.headers:', response.headers);
+        console.log('Location header:', response.headers.get('Location'));
+        // Log all headers
+        const headersObj = {};
+        response.headers.forEach((value, key) => {
+          headersObj[key] = value;
+        });
+        console.log('All headers:', headersObj);
+      } catch (headerError) {
+        console.log('Cannot access headers:', headerError.message);
+      }
+
+      // Possible response.type values:
+      // - "basic": Standard same-origin response
+      // - "cors": Valid CORS response (most common for cross-origin with CORS headers)
+      // - "error": Network error occurred
+      // - "opaque": Opaque response (for no-cors requests, cannot read body/headers)
+      // - "opaqueredirect": Opaque redirect (when redirect: 'manual' and it's a redirect, cannot read body/headers)
+
+      // Check for tenant mismatch - handle both 302 (redirect) and 401 (unauthorized) status codes
+      // Note: Status code doesn't affect header accessibility - CORS configuration does
+      if (response.status === 302 || response.status === 401 || response.type === 'opaqueredirect') {
+        console.log(`${response.status} or opaqueredirect detected - handling tenant mismatch`);
+        
+        // Try to read from response body first (for 401 with JSON body - more reliable)
+        if (response.status === 401 && response.type !== 'opaqueredirect') {
+          try {
+            const responseData = await response.json();
+            console.log('Response body data:', responseData);
+            const logoutUrl = responseData.logoutUrl;
+            const freshLoginUrl = responseData.freshLoginUrl;
+
+            if (logoutUrl && freshLoginUrl) {
+              console.log('Found URLs in response body');
+              // navigate(`/auth/tenant-mismatch?logoutUrl=${encodeURIComponent(logoutUrl)}&freshLoginUrl=${encodeURIComponent(freshLoginUrl)}`);
+              navigate(`/auth/tenant-mismatch?freshLoginUrl=${encodeURIComponent(freshLoginUrl)}`);
+              return;
+            }
+          } catch (bodyError) {
+            console.log('Could not parse response body:', bodyError);
+            // Continue to try Location header approach
+          }
+        }
+
+        // Try to read from Location header (for 302 redirects)
+        // Note: This requires Access-Control-Expose-Headers: Location in CORS config
+        if ((response.status === 302 || response.status === 401) && response.type !== 'opaqueredirect') {
+          try {
+            console.log('Response type is NOT opaqueredirect, attempting to read headers');
+            // Extract logoutUrl and freshLoginUrl from Location header query string
+            const locationHeader = response.headers.get('Location');
+            console.log('Location header value:', locationHeader);
+            if (locationHeader) {
+              try {
+                console.log('Parsing Location header:', locationHeader);
+                // Parse the URL to extract query parameters
+                const locationUrl = new URL(locationHeader);
+                const logoutUrl = locationUrl.searchParams.get('logoutUrl');
+                const freshLoginUrl = locationUrl.searchParams.get('freshLoginUrl');
+
+                if (logoutUrl && freshLoginUrl) {
+                  console.log('Found URLs in Location header');
+                  // navigate(`/auth/tenant-mismatch?logoutUrl=${encodeURIComponent(logoutUrl)}&freshLoginUrl=${encodeURIComponent(freshLoginUrl)}`);
+                  navigate(`/auth/tenant-mismatch?freshLoginUrl=${encodeURIComponent(freshLoginUrl)}`);
+                  return;
+                }
+              } catch (urlParseError) {
+                console.log('URL parsing error:', urlParseError);
+                // If URL parsing fails, try parsing as relative URL or extract query string manually
+                const queryString = locationHeader.includes('?') ? locationHeader.split('?')[1] : '';
+                console.log('Extracted query string:', queryString);
+                if (queryString) {
+                  const params = new URLSearchParams(queryString);
+                  const logoutUrl = params.get('logoutUrl');
+                  const freshLoginUrl = params.get('freshLoginUrl');
+                  console.log('Extracted logoutUrl:', logoutUrl);
+                  console.log('Extracted freshLoginUrl:', freshLoginUrl);
+
+                  if (logoutUrl && freshLoginUrl) {
+                    // navigate(`/auth/tenant-mismatch?logoutUrl=${encodeURIComponent(logoutUrl)}&freshLoginUrl=${encodeURIComponent(freshLoginUrl)}`);
+                    navigate(`/auth/tenant-mismatch?freshLoginUrl=${encodeURIComponent(freshLoginUrl)}`);
+                    return;
+                  }
+                }
+              }
+            } else {
+              console.log('No Location header found');
+            }
+          } catch (headerError) {
+            // Headers might not be accessible
+            console.log('Error accessing headers:', headerError);
+          }
+        } else if (response.type === 'opaqueredirect') {
+          console.log('Response type is opaqueredirect - cannot read headers/body');
+        }
+        
+        // Fallback: redirect to tenant mismatch page without URLs
+        // The page will handle the case where URLs are missing
+        console.log('Redirecting to tenant mismatch page (fallback)');
+        navigate('/auth/tenant-mismatch');
+        return;
       }
 
       if (!response.ok) {

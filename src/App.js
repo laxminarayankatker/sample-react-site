@@ -3,6 +3,7 @@ import './App.css';
 import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import AuthCallback from './components/AuthCallback';
 import Dashboard from './components/Dashboard';
+import TenantMismatchPage from './components/TenantMismatchPage';
 
 function Home() {
   const navigate = useNavigate();
@@ -43,6 +44,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/auth/tenant-mismatch" element={<TenantMismatchPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
