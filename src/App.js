@@ -4,12 +4,13 @@ import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import AuthCallback from './components/AuthCallback';
 import Dashboard from './components/Dashboard';
 import TenantMismatchPage from './components/TenantMismatchPage';
+import CustomLoginPage from './components/CustomLoginPage';
 
 function Home() {
   const navigate = useNavigate();
 
   const handleLogin = () => {
-    navigate('/auth/callback');
+    navigate('/login');
   };
 
   return (
@@ -43,6 +44,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<CustomLoginPage />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/auth/tenant-mismatch" element={<TenantMismatchPage />} />
         <Route path="/dashboard" element={<Dashboard />} />

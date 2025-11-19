@@ -15,6 +15,13 @@ function AuthCallback() {
       setError('Please enter a code');
       return;
     }
+    // fetch code_verifier in Session Storage
+    const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
+    if (!codeVerifier) {
+      setError('Code verifier not found');
+      return;
+    }
+    
 
     setLoading(true);
     setError('');
@@ -22,13 +29,14 @@ function AuthCallback() {
     try {
       let response;
       try {
-        response = await fetch('https://b1vxqylf5h.execute-api.us-east-1.amazonaws.com/auth/v1/exchange-token', {
+        response = await fetch('https://2052tlcei8.execute-api.us-east-1.amazonaws.com/auth/exchange-token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'x-forwarded-host': window.location.host,
           },
           credentials: 'include', // Important: This allows cookies to be sent/received
-          body: JSON.stringify({ code: code.trim() }),
+          body: JSON.stringify({ code: code.trim() , code_verifier: codeVerifier }),
           redirect: 'manual', // Use 'manual' to intercept 302 redirects
         });
       } catch (fetchError) {
@@ -80,12 +88,11 @@ function AuthCallback() {
             const responseData = await response.json();
             console.log('Response body data:', responseData);
             const logoutUrl = responseData.logoutUrl;
-            const freshLoginUrl = responseData.freshLoginUrl;
 
-            if (logoutUrl && freshLoginUrl) {
+            if (logoutUrl) {
               console.log('Found URLs in response body');
-              // navigate(`/auth/tenant-mismatch?logoutUrl=${encodeURIComponent(logoutUrl)}&freshLoginUrl=${encodeURIComponent(freshLoginUrl)}`);
-              navigate(`/auth/tenant-mismatch?freshLoginUrl=${encodeURIComponent(freshLoginUrl)}`);
+              navigate(`/auth/tenant-mismatch?logoutUrl=${encodeURIComponent(logoutUrl)}`);
+              // navigate(`/auth/tenant-mismatch?freshLoginUrl=${encodeURIComponent(freshLoginUrl)}`);
               return;
             }
           } catch (bodyError) {
